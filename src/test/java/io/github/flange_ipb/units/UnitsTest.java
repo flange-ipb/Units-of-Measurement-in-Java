@@ -18,12 +18,16 @@ package io.github.flange_ipb.units;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import javax.measure.IncommensurableException;
 import javax.measure.MetricPrefix;
+import javax.measure.UnconvertibleException;
 import javax.measure.Unit;
 import javax.measure.UnitConverter;
 import javax.measure.quantity.AmountOfSubstance;
+import javax.measure.quantity.Length;
 import javax.measure.quantity.Mass;
 import javax.measure.quantity.Volume;
 
@@ -33,7 +37,7 @@ import tech.units.indriya.unit.Units;
 
 public class UnitsTest {
 	@Test
-	public void test_massUnits() {
+	public void test_massUnits() throws UnconvertibleException, IncommensurableException {
 		Unit<Mass> g1 = Units.GRAM;
 		Unit<Mass> kg1 = Units.KILOGRAM;
 
@@ -69,10 +73,43 @@ public class UnitsTest {
 		assertTrue(g3.isEquivalentTo(g1));
 		assertTrue(g2.isEquivalentTo(g3));
 		assertTrue(g3.isEquivalentTo(g2));
+
+		// compatibility
+		assertTrue(kg1.isCompatible(g1));
+		assertTrue(g1.isCompatible(kg1));
+		assertTrue(g1.isCompatible(g2));
+		assertTrue(g2.isCompatible(g1));
+		assertTrue(kg1.isCompatible(kg2));
+		assertTrue(kg2.isCompatible(kg1));
+		assertTrue(g1.isCompatible(g3));
+		assertTrue(g3.isCompatible(g1));
+		assertTrue(g2.isCompatible(g3));
+		assertTrue(g3.isCompatible(g2));
+
+		// conversions
+		assertEquals(1, kg1.getConverterTo(kg1).convert(1));
+		assertEquals(1, kg1.getConverterToAny(kg1).convert(1));
+
+		assertEquals(1000, kg1.getConverterTo(g1).convert(1));
+		assertEquals(1000, kg1.getConverterToAny(g1).convert(1));
+		assertEquals(1, g1.getConverterTo(kg1).convert(1000));
+		assertEquals(1, g1.getConverterToAny(kg1).convert(1000));
+
+		assertEquals(1, kg1.getConverterTo(kg2).convert(1));
+		assertEquals(1, kg1.getConverterToAny(kg2).convert(1));
+
+		assertEquals(1, g1.getConverterTo(g2).convert(1));
+		assertEquals(1, g1.getConverterToAny(g2).convert(1));
+
+		assertEquals(1, g1.getConverterTo(g3).convert(1));
+		assertEquals(1, g1.getConverterToAny(g3).convert(1));
+
+		assertEquals(1, g2.getConverterTo(g3).convert(1));
+		assertEquals(1, g2.getConverterToAny(g3).convert(1));
 	}
 
 	@Test
-	public void test_concentrations() {
+	public void test_concentrations() throws UnconvertibleException, IncommensurableException {
 		Unit<AmountOfSubstance> mole = Units.MOLE;
 		assertEquals("Mole", mole.getName());
 		assertEquals("mol", mole.getSymbol());
@@ -104,7 +141,21 @@ public class UnitsTest {
 		Unit<Volume> milliLiter = MetricPrefix.MILLI(Units.LITRE);
 		Unit<AmountOfSubstance> milliMole2 = molePerLiter.multiply(milliLiter).asType(AmountOfSubstance.class);
 		assertTrue(milliMole.isEquivalentTo(milliMole2));
-		Unit<?> milliMole3 = molePerLiter.multiply(milliLiter);
+		assertTrue(milliMole.isCompatible(milliMole2));
+		Unit<?> milliMole3 = molePerLiter.multiply(milliLiter); // same thing without type safety
 		assertTrue(milliMole.isCompatible(milliMole3));
+
+		assertEquals(1, milliMole.getConverterTo(milliMole2).convert(1));
+		assertEquals(1, milliMole.getConverterToAny(milliMole3).convert(1));
+		assertEquals(1, milliMole2.getConverterToAny(milliMole3).convert(1));
+	}
+
+	@Test
+	public void test_compatibility() {
+		Unit<Length> meter = Units.METRE;
+		Unit<?> squareMeter = Units.METRE.multiply(meter);
+
+		assertFalse(meter.isCompatible(squareMeter));
+		assertThrows(IncommensurableException.class, () -> meter.getConverterToAny(squareMeter));
 	}
 }
