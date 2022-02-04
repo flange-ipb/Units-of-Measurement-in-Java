@@ -15,6 +15,7 @@
  */
 package io.github.flange_ipb.units;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -29,6 +30,7 @@ import javax.measure.UnitConverter;
 import javax.measure.quantity.AmountOfSubstance;
 import javax.measure.quantity.Length;
 import javax.measure.quantity.Mass;
+import javax.measure.quantity.Speed;
 import javax.measure.quantity.Volume;
 
 import org.junit.jupiter.api.Test;
@@ -157,5 +159,13 @@ public class UnitsTest {
 
 		assertFalse(meter.isCompatible(squareMeter));
 		assertThrows(IncommensurableException.class, () -> meter.getConverterToAny(squareMeter));
+	}
+
+	@Test
+	public void test_asType() {
+		Unit<Length> meter = Units.METRE;
+		assertThrows(ClassCastException.class, () -> meter.multiply(meter).asType(Speed.class)); // (1)
+		assertDoesNotThrow(() -> meter.multiply(meter).asType(Molarity.class)); // (2)
+		// How does it know (1) if it doesn't know (2)???
 	}
 }
